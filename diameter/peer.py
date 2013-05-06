@@ -141,8 +141,6 @@ class PeerStateMachine:
         DPR/DWR will also show up in here
         """
 
-        print("app_handler %d %d" % (message.application_id,message.command_code))
-        print("length %d" % message.message_length)
         #watchdog, don't send it up the stack
         if message.application_id == 0 and \
            message.command_code == 280:

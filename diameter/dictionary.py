@@ -1,6 +1,13 @@
 from xml.dom.minidom import parse, parseString
 import diameter
 
+class DiameterCommandDef:
+  def __init__(self):
+    self.application_id = 0
+    self.vendor_id = 0
+    self.code = 0
+
+
 class DiameterAVPDef:
   def __init__(self):
     self.mandatory_flag = False
@@ -34,13 +41,24 @@ class DiameterDictionary:
   def load(self):
     """We only load avps for now
     Add vendors and commands"""
+    self.name_to_cmd = {}
     self.name_to_def = {}
     self.def_to_name = {}
 
-    vlist = self.dom.getElementsByTagName("vendor")
+    vlist = self.dom.getElementsByTagName('vendor')
     vendors = {}
     for vendor in vlist:
-      vendors[vendor.attributes['name'].value] = int(vendor.attributes['vendor-id'].value)
+      vendors[vendor.attributes['vendor-id'].value] = int(vendor.attributes['code'].value)
+
+    cmds = self.dom.getElementsByTagName("command")
+    for cmd in cmds:
+      newCmd = DiameterCommandDef()
+      if cmd.parentNode.nodeName == "application":
+        newCmd.application_id = int(cmd.parentNode.attributes['id'].value)
+      newCmd.vendor_id = vendors[cmd.attributes['vendor-id'].value]
+      newCmd.code = int(cmd.attributes['code'].value)
+      self.name_to_cmd[cmd.attributes['name'].value] = newCmd
+
     avps = self.dom.getElementsByTagName("avp")
     for avp in avps:
       newAVP = DiameterAVPDef()
@@ -67,6 +85,18 @@ class DiameterDictionary:
       return d.getEnumName(code)
       pass
 
+  def getCommandDefinition(self, name):
+      if self.name_to_cmd.has_key(name):
+          return self.name_to_cmd[name]
+      else:
+          return None
+
+  def getCommandRequest(self, stack, name, auth=False, acct=False):
+      cmd_def = self.getCommandDefinition(name)
+      if cmd_def == None:
+          cmd_def = DiameterCommandDef()
+      return stack.createRequest(cmd_def.application_id, cmd_def.code, auth, acct)
+     
   def getAVPDefinition(self, name):
     if self.name_to_def.has_key(name):
       return self.name_to_def[name]
@@ -84,10 +114,26 @@ class DiameterDictionary:
       if avp_def == None:
           avp_def = DiameterAVPDef()
       ret = diameter.protocol.DiameterAVP()
-      ret.avp_code = avp_def.code
-      ret.avp_vendor = avp_def.vendor_id
-      ret.mandatory_flag = avp_def.mandatory_flag
-      ret.protected_flag = avp_def.protected_flag
+      ret.setCode(avp_def.code)
+      ret.setVendor(avp_def.vendor_id)
+      ret.setMandatory(avp_def.mandatory_flag)
+      ret.setProtected(avp_def.protected_flag)
       return ret
 
+  def isCommand(self, message, name):
+      cmd_def = self.getCommandDefinition(name)
+      return cmd_def != None and \
+             message.application_id == cmd_def.application_id and \
+             message.command_code == cmd_def.code
+
+  def findFirstAVP(self, message_or_avp, *names):
+      for name in names:
+          avp_def = self.getAVPDefinition(name)
+          if avp_def != None:
+              message_or_avp = message_or_avp.findFirstAVP(avp_def.code, avp_def.vendor_id)
+              if message_or_avp == None:
+                  return None
+          else:
+              return None
+      return message_or_avp
 

@@ -43,6 +43,10 @@ class DiameterAVP:
     self.type_size = 4
     self.avp_data = struct.pack("!I",i)
 
+  def withInteger32(self,i):
+    self.setInteger32(i)
+    return self
+
   def getInteger32(self):
     i = struct.unpack("!I",self.avp_data)[0]
     return i
@@ -50,6 +54,11 @@ class DiameterAVP:
   def setInteger64(self,i):
     self.type_size = 8
     self.avp_data = struct.pack("!Q",i)
+
+  def withInteger64(self,i):
+    self.setInteger64(i)
+    return self
+
   def getInteger64(self):
     i = struct.unpack("!Q",self.avp_data)[0]
     return i
@@ -57,6 +66,10 @@ class DiameterAVP:
   def setOctetString(self,str):
     self.type_size = len(str)
     self.avp_data = str
+
+  def withOctetString(self,str):
+    self.setOctetString(str)
+    return self
 
   def getOctetString(self):
     return self.avp_data
@@ -73,11 +86,18 @@ class DiameterAVP:
         # 2 = socket type, 4 = octects for ip
         self.type_size = 6
 
+  def withIPV4(self,addr):
+    self.setIPV4(addr)
+    return self
+
   def addAVP(self,avp):
     self.avp_group.append(avp)
     self.type_size += avp.getPaddedSize()
     self.avp_data += avp.getWire()
 
+  def withAVP(self,avp):
+    self.addAVP(avp)
+    return self
 
   def findFirstAVP(self, code, vendor=0):
     r = self.findAVP(code, vendor)

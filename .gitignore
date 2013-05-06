@@ -2,3 +2,4 @@
 gy.xml
 gx.xml
 *.cache
+*.egg-info
