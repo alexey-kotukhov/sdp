@@ -48,6 +48,14 @@ class PeerStateMachine:
         tmp.setIPV4(self.stack.ip4_address)
         msg.addAVP(tmp)
 
+        #get supported vendors from stack
+        for vendor in self.stack.supported_vendors:
+            supp = DiameterAVP()
+            supp.setCode(265)
+            supp.setMandatory(True)
+            supp.setInteger32(vendor)
+            msg.addAVP(supp)
+
         #get applications from stack
         apps = self.stack.applications.keys()
         for app in apps:

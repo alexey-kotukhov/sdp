@@ -57,6 +57,7 @@ class Stack:
         self.product_name = "nuswit diameter"
         self.ip4_address = "127.0.0.1"
         self.vendor_id = 0
+        self.supported_vendors = list()
         self.firmware_revision = 1
         self.watchdog_seconds = None
         self.hbh = 0
@@ -116,6 +117,9 @@ class Stack:
 
     def getDictionary(self, dict_name):
         return self.dictionaries[dict_name]
+
+    def addSupportedVendor(self, vendor):
+        self.supported_vendors.append(vendor)
 
     def registerApplication(self, app, vendor, code):
         self.applications[(vendor,code)] = app
