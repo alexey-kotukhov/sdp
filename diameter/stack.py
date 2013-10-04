@@ -5,7 +5,8 @@ import sys, warnings, time
 from diameter import dictionary
 from diameter.peer import PeerStateMachine, PeerManager
 from diameter.protocol import DiameterMessage, DiameterAVP
-
+import logging
+_log = logging.getLogger("sdp.diameter.stack")
 
 class PeerListener:
     def __init__(self):
@@ -77,6 +78,7 @@ class Stack:
         return self.ete
 
     def createRequest(self, application, code, auth=False, acct=False):
+        _log.debug("Creating Diameter message with command code %d", code)
         ret = DiameterMessage()
         ret.request_flag = True
         ret.eTe = self.nextEtE()
@@ -146,7 +148,13 @@ class Stack:
 
     def registerPeer(self, peer, identity, realm, apps):
         r = self.manager.registerPeer(peer, identity, realm, apps)
+        _log.debug("Registering peer %s with identity %s for realm %s with apps %s",
+                   str(peer),
+                   str(identity),
+                   str(realm),
+                   str(apps))
         if r == True:
+            _log.debug("Successfully registered %s", str(peer))
             for p in self.peer_listeners:
                 if peer.peer_type == PeerStateMachine.PEER_CLIENT:
                     p.connected(peer)
@@ -155,9 +163,11 @@ class Stack:
             return True
         else:
             #error, duplicated peer or something like that
+            _log.error("Failed to register %s", str(peer))
             return False
 
     def handleIncomingMessage(self, peer, message):
+        _log.debug("Handling incoming Diameter message from peer %s", str(peer))
         # look for auth/application ids
         rapp = message.findFirstAVP(258)
         if rapp == None:
@@ -171,7 +181,7 @@ class Stack:
         try:
             app = self.applications[(0,rvalue)]
         except:
-            print("Application %d not found" % app)
+            _log.error("Peer %s: Application %d not found" % str(peer), app)
             if message.request_flag:
                 answ = message.createAnswer()
                 answ.error_flag = True
@@ -200,7 +210,7 @@ class Stack:
         #3 seconds, 3 retries ( one per sec )
         if msg.last_try < now - 1:
             if msg.retries < 3:
-                print("Retrying...")
+                _log.debug("Sending message to peer %s, attempt number %d", str(peer), msg.retries)
                 self.manager.send(peer,msg)
                 return True
             else:

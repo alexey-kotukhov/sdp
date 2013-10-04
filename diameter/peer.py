@@ -1,5 +1,7 @@
 from diameter.protocol import DiameterMessage, DiameterAVP
 import struct
+import logging
+_log = logging.getLogger("sdp.diameter.peer")
 
 class PeerStateMachine:
     # starts 'sending' CER
@@ -93,36 +95,40 @@ class PeerStateMachine:
         self.run = self.receive_cea
 
     def receive_cea(self, consumed, message):
-
+        _log.debug("Received CER from peer %s", self.peer)
         #check Result-Code
         tmp = message.findFirstAVP(268)
         # missing result code!
         if tmp == None:
-            pass
+            _log.error("CER from peer %s has no result code", self.peer)
+
 
         result = tmp.getInteger32()
+        _log.debug("CER from peer %s has result code %d", self.peer, result)
 
         # register peer!
         if result == 2001:
             tmp = message.findFirstAVP(264)
             if tmp == None:
-                pass
+                _log.error("CER from peer %s has no Origin-Host AVP", self.peer)
+
             identity = tmp.getOctetString()
 
             tmp = message.findFirstAVP(296)
             if tmp == None:
-                pass
+                _log.error("CER from peer %s has no Origin-Realm AVP", self.peer)
+
             realm = tmp.getOctetString()
 
             apps = dict()
-            tmp = message.findAVP(258)
-            for auth in apps:
+            for auth in message.findAVP(258):
                 v = auth.getInteger32()
+                _log.debug("CER from peer %s has Auth-Application-Id %d", self.peer, v)
+
                 if not apps.has_key((0,v)):
                     apps[(0,v)] = True
 
-            tmp = message.findAVP(259)
-            for acct in apps:
+            for acct in message.findAVP(259):
                 v = acct.getInteger32()
                 if not apps.has_key((0,v)):
                     apps[(0,v)] = True
@@ -139,8 +145,12 @@ class PeerStateMachine:
                 if acct and not apps.has_key((vid,acct.getInteger32())):
                     apps[(vid,acct.getInteger32())] = True
 
+            _log.debug("CER from peer %s has identity %s, realm %s and apps %s", self.peer, identity, realm, str(apps))
             if self.stack.registerPeer(self.peer, identity, realm, apps):
                 self.run = self.app_handler
+            else:
+                _log.error("Failed to call registerPeer on CER from peer %s with identity %s, realm %s and apps %s", self.peer, identity, realm, str(apps))
+
 
 
     def app_handler(self, consumed, message):
@@ -152,7 +162,10 @@ class PeerStateMachine:
         #watchdog, don't send it up the stack
         if message.application_id == 0 and \
            message.command_code == 280:
+            _log.debug("Received Device-Watchdog message from peer %s", self.peer)
+
             if message.request_flag:
+                _log.debug("Received Device-Watchdog-Request message from peer %s, replying", self.peer)
                 answ = message.createAnswer()
                 tmp = DiameterAVP()
                 tmp.setCode(268)
@@ -166,7 +179,7 @@ class PeerStateMachine:
 
 
     def receive_cer(self, consumed, message):
-        pass
+        _log.error("Received unexpected CER from peer %s", self.peer)
 
 class Peer:
     def __init__(self, manager, peer_type):
@@ -238,6 +251,11 @@ class Realm:
     def addPeer(self, peer, identity, apps):
         """Add identity, add application"""
         if self.identities.has_key(identity):
+            _log.error("Identity %s already in identities for realm %s with value %s (tried to set to %s)",
+                       str(identity),
+                       self.name,
+                       str(self.identities[identity]),
+                       str(peer))
             return False
 
         self.identities[identity] = peer
@@ -249,6 +267,11 @@ class Realm:
                 appentry = list()
                 self.applications[app] = appentry
             appentry.append(peer)
+
+            _log.debug("Added identity %s to realm %s as peer %s",
+                       str(identity)
+                       self.name,
+                       str(peer))
         return True
 
 class PeerIOCallbacks:
