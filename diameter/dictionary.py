@@ -126,6 +126,13 @@ class DiameterDictionary:
              message.application_id == cmd_def.application_id and \
              message.command_code == cmd_def.code
 
+  def findAVP(self, message_or_avp, name):
+      avp_def = self.getAVPDefinition(name)
+      if avp_def != None:
+          return message_or_avp.findAVP(avp_def.code, avp_def.vendor_id)
+      else:
+          return None
+
   def findFirstAVP(self, message_or_avp, *names):
       for name in names:
           avp_def = self.getAVPDefinition(name)
