@@ -128,7 +128,7 @@ class DiameterDictionary:
 
   def findAVP(self, message_or_avp, name):
       avp_def = self.getAVPDefinition(name)
-      if avp_def != None:
+      if avp_def:
           return message_or_avp.findAVP(avp_def.code, avp_def.vendor_id)
       else:
           return None
@@ -136,7 +136,7 @@ class DiameterDictionary:
   def findFirstAVP(self, message_or_avp, *names):
       for name in names:
           avp_def = self.getAVPDefinition(name)
-          if avp_def != None:
+          if avp_def:
               message_or_avp = message_or_avp.findFirstAVP(avp_def.code, avp_def.vendor_id)
               if message_or_avp == None:
                   return None
