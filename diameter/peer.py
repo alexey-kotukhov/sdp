@@ -268,10 +268,10 @@ class Realm:
                 self.applications[app] = appentry
             appentry.append(peer)
 
-            _log.debug("Added identity %s to realm %s as peer %s",
-                       str(identity)
-                       self.name,
-                       str(peer))
+        _log.debug("Added identity %s to realm %s as peer %s",
+                   str(identity),
+                   self.name,
+                   str(peer))
         return True
 
 class PeerIOCallbacks:
