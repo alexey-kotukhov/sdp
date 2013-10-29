@@ -95,35 +95,35 @@ class PeerStateMachine:
         self.run = self.receive_cea
 
     def receive_cea(self, consumed, message):
-        _log.debug("Received CER from peer %s", self.peer)
+        _log.info("Received CEA from peer %s", self.peer)
         #check Result-Code
         tmp = message.findFirstAVP(268)
         # missing result code!
         if tmp == None:
-            _log.error("CER from peer %s has no result code", self.peer)
+            _log.error("CEA from peer %s has no result code", self.peer)
 
 
         result = tmp.getInteger32()
-        _log.debug("CER from peer %s has result code %d", self.peer, result)
+        _log.debug("CEA from peer %s has result code %d", self.peer, result)
 
         # register peer!
         if result == 2001:
             tmp = message.findFirstAVP(264)
             if tmp == None:
-                _log.error("CER from peer %s has no Origin-Host AVP", self.peer)
+                _log.error("CEA from peer %s has no Origin-Host AVP", self.peer)
 
             identity = tmp.getOctetString()
 
             tmp = message.findFirstAVP(296)
             if tmp == None:
-                _log.error("CER from peer %s has no Origin-Realm AVP", self.peer)
+                _log.error("CEA from peer %s has no Origin-Realm AVP", self.peer)
 
             realm = tmp.getOctetString()
 
             apps = dict()
             for auth in message.findAVP(258):
                 v = auth.getInteger32()
-                _log.debug("CER from peer %s has Auth-Application-Id %d", self.peer, v)
+                _log.debug("CEA from peer %s has Auth-Application-Id %d", self.peer, v)
 
                 if not apps.has_key((0,v)):
                     apps[(0,v)] = True
@@ -145,11 +145,11 @@ class PeerStateMachine:
                 if acct and not apps.has_key((vid,acct.getInteger32())):
                     apps[(vid,acct.getInteger32())] = True
 
-            _log.debug("CER from peer %s has identity %s, realm %s and apps %s", self.peer, identity, realm, str(apps))
+            _log.debug("CEA from peer %s has identity %s, realm %s and apps %s", self.peer, identity, realm, apps)
             if self.stack.registerPeer(self.peer, identity, realm, apps):
                 self.run = self.app_handler
             else:
-                _log.error("Failed to call registerPeer on CER from peer %s with identity %s, realm %s and apps %s", self.peer, identity, realm, str(apps))
+                _log.error("registerPeer failed on CEA from peer %s with identity %s, realm %s and apps %s", self.peer, identity, realm, apps)
 
 
 
@@ -252,10 +252,10 @@ class Realm:
         """Add identity, add application"""
         if self.identities.has_key(identity):
             _log.error("Identity %s already in identities for realm %s with value %s (tried to set to %s)",
-                       str(identity),
+                       identity,
                        self.name,
-                       str(self.identities[identity]),
-                       str(peer))
+                       self.identities[identity],
+                       peer)
             return False
 
         self.identities[identity] = peer
@@ -269,9 +269,9 @@ class Realm:
             appentry.append(peer)
 
         _log.debug("Added identity %s to realm %s as peer %s",
-                   str(identity),
+                   identity,
                    self.name,
-                   str(peer))
+                   peer)
         return True
 
 class PeerIOCallbacks:

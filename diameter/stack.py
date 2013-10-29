@@ -148,13 +148,13 @@ class Stack:
 
     def registerPeer(self, peer, identity, realm, apps):
         r = self.manager.registerPeer(peer, identity, realm, apps)
-        _log.debug("Registering peer %s with identity %s for realm %s with apps %s",
-                   str(peer),
-                   str(identity),
-                   str(realm),
-                   str(apps))
+        _log.info("Registering peer %s with identity %s for realm %s with apps %s",
+                   peer,
+                   identity,
+                   realm,
+                   apps)
         if r == True:
-            _log.debug("Successfully registered %s", str(peer))
+            _log.info("Successfully registered %s", peer)
             for p in self.peer_listeners:
                 if peer.peer_type == PeerStateMachine.PEER_CLIENT:
                     p.connected(peer)
@@ -163,11 +163,11 @@ class Stack:
             return True
         else:
             #error, duplicated peer or something like that
-            _log.error("Failed to register %s", str(peer))
+            _log.error("Failed to register %s", peer)
             return False
 
     def handleIncomingMessage(self, peer, message):
-        _log.debug("Handling incoming Diameter message from peer %s", str(peer))
+        _log.debug("Handling incoming Diameter message from peer %s", peer)
         # look for auth/application ids
         rapp = message.findFirstAVP(258)
         if rapp == None:
@@ -181,7 +181,7 @@ class Stack:
         try:
             app = self.applications[(0,rvalue)]
         except:
-            _log.error("Peer %s: Application %d not found" % str(peer), app)
+            _log.error("Peer %s: Application %d not found" % peer, app)
             if message.request_flag:
                 answ = message.createAnswer()
                 answ.error_flag = True
@@ -205,13 +205,12 @@ class Stack:
 
     def dispatch_messages(self, peer, msg):
         now = int(time.time())
-        print(repr(msg))
-        print(repr(peer))
         #3 seconds, 3 retries ( one per sec )
         if msg.last_try < now - 1:
             if msg.retries < 3:
-                _log.debug("Sending message to peer %s, attempt number %d", str(peer), msg.retries)
+                _log.debug("Sending message to peer %s, attempt number %d", peer, msg.retries)
                 self.manager.send(peer,msg)
                 return True
             else:
+                _log.error("Failed to send message to peer %s, after %d retries", peer, msg.retries)
                 return False
