@@ -85,7 +85,6 @@ class PeerStateMachine:
                 tmp.addAVP(auth)
                 tmp.addAVP(acc)
                 msg.addAVP(tmp)
-                msg.addAVP(v)
             else:
                 msg.addAVP(auth)
                 msg.addAVP(acc)

@@ -50,13 +50,13 @@ class ApplicationListener:
 
 
 class Stack:
-    def __init__(self):
+    def __init__(self, product_name="nuswit diameter", ip4_address="127.0.0.1"):
         self.applications = dict()
         self.peer_listeners = list()
         self.dictionaries = dict()
         self.manager = PeerManager(self)
-        self.product_name = "nuswit diameter"
-        self.ip4_address = "127.0.0.1"
+        self.product_name = product_name
+        self.ip4_address = ip4_address
         self.vendor_id = 0
         self.supported_vendors = list()
         self.firmware_revision = 1
@@ -168,10 +168,21 @@ class Stack:
 
     def handleIncomingMessage(self, peer, message):
         _log.debug("Handling incoming Diameter message from peer %s", peer)
+
+        # first check for a vendor-specific application id
+        vendorid = 0
+        rapp_container = message.findFirstAVP(260)
+        if rapp_container != None:
+            rvendorid = rapp_container.findFirstAVP(266)
+            if rvendorid != None:
+                vendorid = rvendorid.getInteger32()
+        else:
+            rapp_container = message
+        
         # look for auth/application ids
-        rapp = message.findFirstAVP(258)
+        rapp = rapp_container.findFirstAVP(258)
         if rapp == None:
-            rapp = message.findFirstAVP(259)
+            rapp = rapp_container.findFirstAVP(259)
 
         if rapp != None:
             rvalue = rapp.getInteger32()
@@ -179,9 +190,9 @@ class Stack:
             rvalue = message.application_id
 
         try:
-            app = self.applications[(0,rvalue)]
+            app = self.applications[(vendorid,rvalue)]
         except:
-            _log.error("Peer %s: Application %d not found" % peer, app)
+            _log.error("Peer %s: Application (%d,%d) not found" % (peer, vendorid, rvalue))
             if message.request_flag:
                 answ = message.createAnswer()
                 answ.error_flag = True
