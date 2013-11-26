@@ -95,7 +95,7 @@ class DiameterDictionary:
       cmd_def = self.getCommandDefinition(name)
       if cmd_def == None:
           cmd_def = DiameterCommandDef()
-      return stack.createRequest(cmd_def.application_id, cmd_def.code, auth, acct)
+      return stack.createRequest(cmd_def.application_id, cmd_def.code, auth, acct, vendor_id=cmd_def.vendor_id)
      
   def getAVPDefinition(self, name):
     if self.name_to_def.has_key(name):

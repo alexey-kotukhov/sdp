@@ -77,7 +77,7 @@ class Stack:
         self.ete += 1
         return self.ete
 
-    def createRequest(self, application, code, auth=False, acct=False):
+    def createRequest(self, application, code, auth=False, acct=False, vendor_id=None):
         _log.debug("Creating Diameter message with command code %d", code)
         ret = DiameterMessage()
         ret.request_flag = True
@@ -98,18 +98,33 @@ class Stack:
         origin_realm.setOctetString(self.realm)
         ret.addAVP(origin_realm)
 
+        if vendor_id:
+            app_container = DiameterAVP()
+            app_container.setCode(260)
+            app_container.setMandatory(True)
+            tmp = DiameterAVP()
+            tmp.setCode(266)
+            tmp.setMandatory(True)
+            tmp.setInteger32(vendor_id)
+            app_container.addAVP(tmp)
+        else:
+            app_container = ret
+
         if auth:
             tmp = DiameterAVP()
             tmp.setCode(258)
             tmp.setMandatory(True)
             tmp.setInteger32(application)
-            ret.addAVP(tmp)
+            app_container.addAVP(tmp)
         elif acct:
             tmp = DiameterAVP()
             tmp.setCode(258)
             tmp.setMandatory(True)
             tmp.setInteger32(application)
-            ret.addAVP(tmp)
+            app_container.addAVP(tmp)
+
+        if app_container != ret:
+            ret.addAVP(app_container)
 
         return ret
 
