@@ -51,7 +51,8 @@ class ApplicationListener:
 
 class Stack:
     def __init__(self, product_name="nuswit diameter", ip4_address="127.0.0.1"):
-        self.applications = dict()
+        self.auth_apps = dict()
+        self.acct_apps = dict()
         self.peer_listeners = list()
         self.dictionaries = dict()
         self.manager = PeerManager(self)
@@ -138,8 +139,11 @@ class Stack:
     def addSupportedVendor(self, vendor):
         self.supported_vendors.append(vendor)
 
-    def registerApplication(self, app, vendor, code):
-        self.applications[(vendor,code)] = app
+    def registerAuthApplication(self, app, vendor, code):
+        self.auth_apps[(vendor,code)] = app
+
+    def registerAcctApplication(self, app, vendor, code):
+        self.acct_apps[(vendor,code)] = app
 
     def registerPeerListener(self, pl):
         self.peer_listeners.append(pl)
@@ -204,9 +208,11 @@ class Stack:
         else:
             rvalue = message.application_id
 
-        try:
-            app = self.applications[(vendorid,rvalue)]
-        except:
+        if self.auth_apps.has_key((vendorid,rvalue)):
+            app = self.auth_apps[(vendorid,rvalue)]
+        elif self.acct_apps.has_key((vendorid,rvalue)):
+            app = self.acct_apps[(vendorid,rvalue)]
+        else:
             _log.error("Peer %s: Application (%d,%d) not found" % (peer, vendorid, rvalue))
             if message.request_flag:
                 answ = message.createAnswer()
@@ -225,7 +231,7 @@ class Stack:
         """Check retransmissions"""
         self.queued_messages[:] = [x for x in self.queued_messages if self.dispatch_messages(*x)]
         #tick all applications ( required so tick is called only once )
-        apps = list(set(self.applications.values()))
+        apps = list(set(self.auth_apps.values()).union(set(self.acct_apps.values())))
         for app in apps:
             app.onTick()
 
