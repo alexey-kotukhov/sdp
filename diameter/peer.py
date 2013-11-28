@@ -59,35 +59,33 @@ class PeerStateMachine:
             msg.addAVP(supp)
 
         #get applications from stack
-        apps = self.stack.applications.keys()
-        for app in apps:
-            #acct
-            acc = DiameterAVP()
-            acc.setCode(259)
-            acc.setMandatory(True)
-            acc.setInteger32(app[1])
-            #auth
-            auth = DiameterAVP()
-            auth.setCode(258)
-            auth.setMandatory(True)
-            auth.setInteger32(app[1])
-
-            if app[0]:
-                tmp = DiameterAVP()
-                tmp.setCode(260)
-                tmp.setMandatory(True)
-                #vendor
-                v = DiameterAVP()
-                v.setCode(266)
-                v.setMandatory(True)
-                v.setInteger32(app[0])
-                tmp.addAVP(v)
-                tmp.addAVP(auth)
-                tmp.addAVP(acc)
-                msg.addAVP(tmp)
-            else:
-                msg.addAVP(auth)
-                msg.addAVP(acc)
+        for apps in [self.stack.auth_apps, self.stack.acct_apps]:
+            for app in apps:
+                # Build *-Application-Id AVP
+                app_id = DiameterAVP()
+                if apps == self.stack.auth_apps:
+                    # App is for authentication, so use Auth-Application-Id AVP code
+                    app_id.setCode(258)
+                else:
+                    # App is for accounting, so use Acct-Application-Id AVP code
+                    app_id.setCode(259)
+                app_id.setMandatory(True)
+                app_id.setInteger32(app[1])
+    
+                if app[0]:
+                    tmp = DiameterAVP()
+                    tmp.setCode(260)
+                    tmp.setMandatory(True)
+                    #vendor
+                    v = DiameterAVP()
+                    v.setCode(266)
+                    v.setMandatory(True)
+                    v.setInteger32(app[0])
+                    tmp.addAVP(v)
+                    tmp.addAVP(app_id)
+                    msg.addAVP(tmp)
+                else:
+                    msg.addAVP(app_id)
 
         self.stack.sendByPeer(self.peer, msg, False)
 
