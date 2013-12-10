@@ -163,12 +163,7 @@ class PeerStateMachine:
 
             if message.request_flag:
                 _log.debug("Received Device-Watchdog-Request message from peer %s, replying", self.peer)
-                answ = message.createAnswer()
-                tmp = DiameterAVP()
-                tmp.setCode(268)
-                tmp.setMandatory(True)
-                tmp.setInteger32(2001)
-                answ.addAVP(tmp)
+                answ = self.stack.createAnswer(message, 2001)
                 self.stack.sendByPeer(self.peer, answ, False)
             return
 

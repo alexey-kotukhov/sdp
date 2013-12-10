@@ -87,17 +87,7 @@ class Stack:
         ret.application_id = application
         ret.command_code = code
 
-        origin_host = DiameterAVP()
-        origin_host.setCode(264)
-        origin_host.setMandatory(True)
-        origin_host.setOctetString(self.identity)
-        ret.addAVP(origin_host)
-
-        origin_realm = DiameterAVP()
-        origin_realm.setCode(296)
-        origin_realm.setMandatory(True)
-        origin_realm.setOctetString(self.realm)
-        ret.addAVP(origin_realm)
+        self.addOriginHostRealm(ret)
 
         if vendor_id:
             app_container = DiameterAVP()
@@ -129,6 +119,38 @@ class Stack:
 
         return ret
 
+    def createAnswer(self, req, ret_code=None):
+        ret = DiameterMessage()
+        ret.request_flag = False
+        ret.proxiable_flag = req.proxiable_flag
+        ret.eTe = req.eTe
+        ret.hBh = req.hBh
+        ret.application_id = req.application_id
+        ret.command_code = req.command_code
+  
+        if ret_code:
+            tmp = DiameterAVP()
+            tmp.setCode(268)
+            tmp.setMandatory(True)
+            tmp.setInteger32(ret_code)
+            ret.addAVP(tmp)
+  
+        self.addOriginHostRealm(ret)
+
+        return ret
+
+    def addOriginHostRealm(self, msg):
+        origin_host = DiameterAVP()
+        origin_host.setCode(264)
+        origin_host.setMandatory(True)
+        origin_host.setOctetString(self.identity)
+        msg.addAVP(origin_host)
+
+        origin_realm = DiameterAVP()
+        origin_realm.setCode(296)
+        origin_realm.setMandatory(True)
+        origin_realm.setOctetString(self.realm)
+        msg.addAVP(origin_realm)
 
     def loadDictionary(self, dict_name, dict_file):
         self.dictionaries[dict_name] = dictionary.DiameterDictionary(dict_file)
@@ -215,7 +237,7 @@ class Stack:
         else:
             _log.error("Peer %s: Application (%d,%d) not found" % (peer, vendorid, rvalue))
             if message.request_flag:
-                answ = message.createAnswer()
+                answ = self.createAnswer(message)
                 answ.error_flag = True
                 self.sendByPeer(peer, answ)
             return
