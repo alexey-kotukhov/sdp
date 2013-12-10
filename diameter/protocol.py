@@ -281,14 +281,3 @@ class DiameterMessage:
     self.avp_group.append(avp)
     self.message_length += avp.getPaddedSize()
 
-  def createAnswer(self):
-    reply = DiameterMessage()
-    reply.request_flag = False
-    reply.proxiable_flag = self.proxiable_flag
-    reply.eTe = self.eTe
-    reply.hBh = self.hBh
-    reply.application_id = self.application_id
-    reply.command_code = self.command_code
-    return reply
-
-
