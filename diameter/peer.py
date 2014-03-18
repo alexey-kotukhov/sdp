@@ -191,6 +191,7 @@ class Peer:
 
     def feed(self, buf, length):
         """Returns the amount of bytes consumed from buf"""
+        total_consumed = 0
 
         # special signal, send it up the stack
         if length == 0:
@@ -202,32 +203,35 @@ class Peer:
             self.fsm.run(-1, None)
             return -1
 
-        # dont have an entire diameter header yet
-        if length < 20:
-            return 0
+        # while we have an entire diameter header
+        while length >= 20:
+            version_length = struct.unpack("!i",buf[:4])[0]
+            version = version_length >> 24
+            msg_length = (version_length & 0x00ffffff)
 
-        version_length = struct.unpack("!i",buf[:4])[0]
-        version = version_length >> 24
-        msg_length = (version_length & 0x00ffffff)
+            # protocol error, disconnect
+            if version != 1:
+                pass
 
-        # protocol error, disconnect
-        if version != 1:
-            pass
+            # can't read one entire message
+            # caller should buffer
+            if msg_length > length:
+                return 0
 
-        # can't read one entire message
-        # caller should buffer
-        if msg_length > length:
-            return 0
+            msg = DiameterMessage()
+            consumed = msg.parseFromBuffer(buf)
+            self.fsm.run(consumed, msg)
 
-        msg = DiameterMessage()
-        consumed = msg.parseFromBuffer(buf)
-        self.fsm.run(consumed, msg)
+            # protocol error, disconnect
+            if consumed <= 0:
+                return consumed
 
-        # protocol error, disconnect
-        if consumed <= 0:
-            pass
+            # remove the handled message ready to go round again
+            buf = buf[consumed:]
+            length -= consumed
+            total_consumed += consumed
 
-        return consumed
+        return total_consumed
 
 
     def destroy(self):
