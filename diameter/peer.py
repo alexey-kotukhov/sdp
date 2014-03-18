@@ -216,7 +216,7 @@ class Peer:
             # can't read one entire message
             # caller should buffer
             if msg_length > length:
-                return 0
+                return total_consumed
 
             msg = DiameterMessage()
             consumed = msg.parseFromBuffer(buf)
