@@ -207,6 +207,12 @@ class Stack:
             _log.error("Failed to register %s", peer)
             return False
 
+    def removePeer(self, peer):
+        self.manager.removerPeer(peer)
+        for p in self.peer_listeners:
+            if peer.peer_type == PeerStateMachine.PEER_SERVER:
+                p.removed(peer)
+
     def handleIncomingMessage(self, peer, message):
         _log.debug("Handling incoming Diameter message from peer %s", peer)
 
